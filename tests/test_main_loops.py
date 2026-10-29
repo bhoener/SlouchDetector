@@ -94,6 +94,57 @@ def test_see_yourself(monkeypatch, screen):
     assert len(screen.shown) == 5
 
 
+def test_posture_monitor_worker(monkeypatch):
+    module = load_module("posture_monitor.py")
+    worker = module.MonitorWorker()
+    pose = fake_pose(left_visibility=0.99, right_visibility=0.99)
+    task = FakeTask([Fake(pose_landmarks=[pose])] * 5)
+    camera = FakeCamera(5)
+    released, notifications, options_seen = [], [], []
+    monkeypatch.setattr(camera, "release", lambda: released.append(True))
+    monkeypatch.setattr(module, "open_camera", lambda: camera)
+    monkeypatch.setattr(module, "model_path", lambda name: f"models/{name}")
+
+    def create(options):
+        options_seen.append(options)
+        return task
+
+    monkeypatch.setattr(vision.PoseLandmarker, "create_from_options", create)
+    heights = iter([0.5, 0.3, 0.3, 0.3, None])
+    monkeypatch.setattr(module, "posture_height", lambda pose, frame: next(heights))
+    clock = iter(x * 2.0 for x in range(100))
+    monkeypatch.setattr(time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(module, "notify_posture", lambda: notifications.append(True))
+    monkeypatch.setattr(cv2, "imshow", lambda *args: pytest.fail("No video UI allowed"))
+    worker.calibration_requested.set()
+    worker.run()
+    assert notifications == [True]
+    assert released == [True]
+    assert len(task.timestamps) == 5
+    assert options_seen[0].running_mode == vision.RunningMode.VIDEO
+    assert options_seen[0].base_options.model_asset_path == "models/pose_landmarker_lite.task"
+
+
+def test_posture_monitor_releases_camera_on_model_failure(monkeypatch):
+    module = load_module("posture_monitor.py")
+    camera = FakeCamera(1)
+    released = []
+    monkeypatch.setattr(camera, "release", lambda: released.append(True))
+    monkeypatch.setattr(module, "open_camera", lambda: camera)
+    monkeypatch.setattr(module, "model_path", lambda name: f"models/{name}")
+
+    def fail(options):
+        raise RuntimeError("Broken model")
+
+    monkeypatch.setattr(vision.PoseLandmarker, "create_from_options", fail)
+    worker = module.MonitorWorker()
+    worker.run()
+    assert released == [True]
+    messages = list(worker.messages.queue)
+    assert ("error", "Broken model") in messages
+    assert messages[-1] == ("stopped", "Camera off")
+
+
 def test_air_drawing_solution(monkeypatch, screen, air):
     painters = []
 

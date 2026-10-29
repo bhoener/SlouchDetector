@@ -3,3 +3,4 @@
 # Releases after 0.10.21 need Windows, Linux or an Apple Silicon Mac.
 # On an Intel Mac, pip picks 0.10.21 (use Python 3.9-3.12).
 mediapipe>=0.10.21
+rumps>=0.4.0; sys_platform == "darwin"

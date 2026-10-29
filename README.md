@@ -11,6 +11,32 @@ vibe-coded with an AI assistant.
 | 2. Rock-paper-scissors vs. the computer | Gesture Recognizer | [starter/rock_paper_scissors.py](starter/rock_paper_scissors.py) | [solutions/rock_paper_scissors.py](solutions/rock_paper_scissors.py) | [02-rock-paper-scissors.md](prompts/02-rock-paper-scissors.md) |
 | 3. Squat or push-up counter | Pose Landmarker | [starter/rep_counter.py](starter/rep_counter.py) | [solutions/rep_counter.py](solutions/rep_counter.py) | [03-rep-counter.md](prompts/03-rep-counter.md) |
 
+## Posture monitor
+
+After setup, run `python posture_monitor.py` (optional: `--camera 1`) on macOS.
+A **Posture** item appears in the upper menu bar; there is no video window.
+
+- **Start recording** starts webcam posture analysis in a background thread.
+  No video or images are saved. The camera stays off until you start it.
+- **Calibrate upright posture** saves a fresh measurement. Face a fixed,
+  eye-level camera with both ears and shoulders visible and sit upright first.
+  Recalibrate after moving the camera. The menu shows tracking/calibration status.
+- **Stop recording** releases the camera. Starting again requires calibration.
+- **Quit** stops monitoring, releases the camera, and removes the menu bar item.
+
+A 25% drop in ear-to-shoulder height relative to shoulder width starts a timer.
+After more than five continuous seconds, macOS displays **Fix your posture**
+with a sound. One notification is sent per continuous episode; recovering or
+losing reliable tracking resets the timer. Allow Camera access for your Python
+launcher/terminal when macOS asks. Notifications are delivered through Apple's
+`osascript`; allow its notification sender in System Settings > Notifications
+if prompted. Focus mode and notification settings can suppress banners/sounds.
+
+This uses PoseLandmarker in VIDEO mode and mirrored frames. The frontal image
+heuristic uses ears (7/8) and shoulders (11/12); looking down can trigger it,
+and forward lean without a visible change in head height may be missed.
+The process must remain running; it does not install a login item or service.
+
 ## Setup (about 5 minutes)
 
 You need a webcam and Python 3.9–3.13. Python 3.12 is the safe pick on any laptop.
